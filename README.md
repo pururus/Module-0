@@ -6,5 +6,9 @@
 
 * Overview: https://minitorch.github.io/module0/module0/
 
-![Настроенный классификатор](Module-0/images/image_0.png)
+![Настроенный классификатор](images/image_0.png)
+
+| w0 | w1 | bias |
+| -- | -- | -- |
+|-5.88| 0.03 | 3.04|
 
