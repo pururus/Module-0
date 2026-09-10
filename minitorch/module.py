@@ -20,6 +20,11 @@ class Module:
     training: bool
 
     def __init__(self) -> None:
+        """Initialize an empty module.
+
+        Creates empty stores for child modules and parameters and sets the
+        module to training mode.
+        """
         self._modules = {}
         self._parameters = {}
         self.training = True
@@ -31,29 +36,44 @@ class Module:
 
     def train(self) -> None:
         """Set the mode of this module and all descendent modules to `train`."""
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        self.training = True
+        for module in self.modules():
+            module.train()
 
     def eval(self) -> None:
         """Set the mode of this module and all descendent modules to `eval`."""
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        self.training = False
+        for module in self.modules():
+            module.eval()
 
-    def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
-        """Collect all the parameters of this module and its descendents.
+    def named_parameters(self, prefix: str = "") -> Sequence[Tuple[str, Parameter]]:
+        """Collect all parameters of this module and its descendants.
 
-        Returns
+        Args:
+        ----
+            prefix: Prefix to prepend to parameter names.
+
+        Returns:
         -------
-            The name and `Parameter` of each ancestor parameter.
+            Sequence of (name, Parameter) pairs for each ancestor parameter.
 
         """
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        separator = "." if prefix != "" else ""
+        params = [
+            (prefix + separator + key, self._parameters[key])
+            for key in self._parameters
+        ]
+        for name, module in self._modules.items():
+            new_prefix = prefix + separator + name
+            params += module.named_parameters(new_prefix)
+        return params
 
     def parameters(self) -> Sequence[Parameter]:
         """Enumerate over all the parameters of this module and its descendents."""
-        # TODO: Implement for Task 0.4.
-        raise NotImplementedError("Need to implement for Task 0.4")
+        params = [self._parameters[key] for key in self._parameters]
+        for module in self.modules():
+            params += module.parameters()
+        return params
 
     def add_parameter(self, k: str, v: Any) -> Parameter:
         """Manually add a parameter. Useful helper for scalar parameters.
@@ -73,6 +93,14 @@ class Module:
         return val
 
     def __setattr__(self, key: str, val: Parameter) -> None:
+        """Set an attribute, routing parameters and modules to internal stores.
+
+        Args:
+        ----
+            key: Attribute name.
+            val: Attribute value.
+
+        """
         if isinstance(val, Parameter):
             self.__dict__["_parameters"][key] = val
         elif isinstance(val, Module):
@@ -81,6 +109,17 @@ class Module:
             super().__setattr__(key, val)
 
     def __getattr__(self, key: str) -> Any:
+        """Get an attribute from parameters, child modules, or regular attributes.
+
+        Args:
+        ----
+            key: Attribute name.
+
+        Returns:
+        -------
+            The stored parameter or child module, or None if the key is not found.
+
+        """
         if key in self.__dict__["_parameters"]:
             return self.__dict__["_parameters"][key]
 
@@ -89,10 +128,42 @@ class Module:
         return None
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Call the module's forward method.
+
+        Args:
+        ----
+            *args: Positional arguments passed to forward.
+            **kwargs: Keyword arguments passed to forward.
+
+        Returns:
+        -------
+            Output of the forward method.
+
+        """
         return self.forward(*args, **kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the module tree.
+
+        Returns
+        -------
+            String representation showing child modules.
+
+        """
+
         def _addindent(s_: str, numSpaces: int) -> str:
+            """Indent all lines except the first by a given number of spaces.
+
+            Args:
+            ----
+                s_: Input string.
+                numSpaces: Number of spaces to indent.
+
+            Returns:
+            -------
+                Indented string.
+
+            """
             s2 = s_.split("\n")
             if len(s2) == 1:
                 return s_
@@ -127,6 +198,14 @@ class Parameter:
     """
 
     def __init__(self, x: Any, name: Optional[str] = None) -> None:
+        """Initialize a parameter.
+
+        Args:
+        ----
+            x: Value to store.
+            name: Optional parameter name.
+
+        """
         self.value = x
         self.name = name
         if hasattr(x, "requires_grad_"):
@@ -143,7 +222,9 @@ class Parameter:
                 self.value.name = self.name
 
     def __repr__(self) -> str:
+        """Return the representation of the underlying value."""
         return repr(self.value)
 
     def __str__(self) -> str:
+        """Return the string representation of the underlying value."""
         return str(self.value)
